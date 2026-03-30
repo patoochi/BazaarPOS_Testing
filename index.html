@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BazaarOS — Point of Sale & Inventory Management</title>
+  <meta name="description" content="BazaarOS: A modern POS and inventory management system for retail stores.">
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Emoji Picker Element -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- QuaggaJS for barcode scanning fallback (async - not needed for core app) -->
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js" async></script>
+</head>
+
+<body>
+
+  <!-- ============================================
+     FULL PAGE LOADER (Splash Screen)
+     ============================================ -->
+  <div id="page-loader" class="page-loader" style="display:none;">
+    <div class="loader-content">
+      <div class="loader-logo">
+        <img src="assets/logo.png" alt="BazaarOS">
+      </div>
+      <div class="loader-spinner"></div>
+      <p id="loader-text">Configuring Secure Session...</p>
+    </div>
+  </div>
+
+  <!-- ============================================
+     TOAST CONTAINER
+     ============================================ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ============================================
+     AUTH SCREENS (Login / Register)
+     ============================================ -->
+  <div id="auth-wrapper" class="auth-wrapper">
+
+    <!-- LOGIN -->
+    <div id="login-form-section">
+      <div class="auth-card">
+        <div class="logo-area">
+          <img src="assets/logo.png" alt="BazaarOS Logo">
+          <h1>BazaarOS</h1>
+          <p>Store Owner's Panel</p>
+        </div>
+
+        <div class="alert-placeholder">
+          <div id="login-alert" class="alert alert-error"></div>
+        </div>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required
+              autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Enter your password" required
+              autocomplete="current-password">
+          </div>
+          <button type="submit" id="login-btn" class="btn btn-primary btn-full" style="margin-top:8px">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Don't have an account? <a href="#" onclick="Auth.showRegister(); return false;">Create one</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTER (Multi-column Refactor) -->
+    <div id="register-form-section" style="display:none">
+      <div class="auth-card register-card">
+        <div class="logo-area" style="margin-bottom: 30px;">
+          <img src="assets/logo.png" alt="BazaarOS Logo">
+          <h1>BazaarOS</h1>
+          <p>Join our professional commerce network</p>
+        </div>
+
+        <div class="alert-placeholder">
+          <div id="register-alert" class="alert alert-error"></div>
+        </div>
+
+        <form id="registerForm" autocomplete="on">
+          <div class="auth-grid">
+            
+            <!-- Group 1: Store Information -->
+            <div class="auth-group">
+               <h3><i class="fas fa-shop"></i> Store Information</h3>
+               <div class="form-group">
+                 <label for="reg-store">Store Name *</label>
+                 <input type="text" id="reg-store" class="form-input" placeholder="e.g. Sari-Sari Center" required>
+                 <div class="validation-msg"></div>
+               </div>
+               <div class="form-group">
+                 <label for="reg-address">Store Address *</label>
+                 <textarea id="reg-address" class="form-input" placeholder="Block, Street, City" required style="min-height: 80px;"></textarea>
+                 <div class="validation-msg"></div>
+               </div>
+               <div class="form-group">
+                 <label for="reg-hours">Working Hours</label>
+                 <input type="text" id="reg-hours" class="form-input" placeholder="e.g. 8AM - 8PM Daily">
+               </div>
+            </div>
+
+            <!-- Group 2: Owner Information -->
+            <div class="auth-group">
+               <h3><i class="fas fa-id-card"></i> Owner Information</h3>
+               <div class="form-group">
+                 <label for="reg-fullname">Full Name *</label>
+                 <input type="text" id="reg-fullname" class="form-input" placeholder="Juan Dela Cruz" required>
+                 <div class="validation-msg"></div>
+               </div>
+               <div class="form-group">
+                 <label for="reg-phone">Phone Number *</label>
+                 <input type="tel" id="reg-phone" class="form-input" placeholder="09XX XXX XXXX" required>
+                 <div class="validation-msg"></div>
+               </div>
+               <div class="form-group">
+                 <label for="reg-email">Email Address *</label>
+                 <input type="email" id="reg-email" class="form-input" placeholder="you@example.com" required autocomplete="email">
+                 <div class="validation-msg"></div>
+               </div>
+            </div>
+
+            <!-- Group 3: Security & Access -->
+            <div class="auth-group">
+               <h3><i class="fas fa-shield-halved"></i> Security</h3>
+               <div class="form-group">
+                 <label for="reg-password">Password *</label>
+                 <input type="password" id="reg-password" class="form-input" placeholder="At least 6 chars" required minlength="6" autocomplete="new-password">
+                 <div class="validation-msg"></div>
+               </div>
+               <div class="form-group">
+                 <label for="reg-confirm">Confirm Password *</label>
+                 <input type="password" id="reg-confirm" class="form-input" placeholder="Repeat password" required minlength="6" autocomplete="new-password">
+                 <div class="validation-msg"></div>
+               </div>
+               
+               <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color);">
+                 <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                   <i class="fas fa-info-circle"></i> By creating an account, you agree to our professional store management guidelines and secure data isolation protocol.
+                 </p>
+               </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 15px;">
+            <button type="submit" id="register-btn" class="btn btn-primary" style="padding: 14px 60px; font-size: 16px;">
+              <i class="fas fa-rocket"></i> Launch My Store
+            </button>
+            <div class="auth-footer">
+              Already have an account? <a href="#" onclick="Auth.showLogin(); return false;">Sign in to Dashboard</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+     APP SHELL (Sidebar + Content)
+     ============================================ -->
+  <div id="app-shell">
+    <div class="app-layout">
+
+      <!-- Mobile sidebar overlay -->
+      <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <img src="assets/logo.png" alt="BazaarOS">
+          <h1>BazaarOS</h1>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="nav-section-label">Main</div>
+          <a href="#" class="nav-item active" data-page="dashboard">
+            <i class="fas fa-chart-pie"></i> Dashboard
+          </a>
+          <a href="#" class="nav-item" data-page="pos">
+            <i class="fas fa-cash-register"></i> Point of Sale
+          </a>
+          <a href="#" class="nav-item" data-page="inventory">
+            <i class="fas fa-boxes-stacked"></i> Inventory
+          </a>
+
+          <div class="nav-section-label">Manage</div>
+          <a href="#" class="nav-item" data-page="profile">
+            <i class="fas fa-store"></i> Store Profile
+          </a>
+          <a href="#" class="nav-item" data-page="settings">
+            <i class="fas fa-gear"></i> Settings
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item" onclick="Auth.logout(); return false;" style="color:var(--danger)">
+            <i class="fas fa-right-from-bracket"></i> Log Out
+          </a>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <div class="main-area">
+
+        <!-- Top header bar -->
+        <header class="top-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+              <i class="fas fa-bars"></i>
+            </button>
+            <h2 id="page-title" class="page-title">Dashboard</h2>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-sm btn-ghost" onclick="Router.navigate('pos')">
+              <i class="fas fa-cash-register"></i> <span class="hide-mobile">POS</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="page-content">
+
+          <!-- ==========================================
+             PAGE: DASHBOARD
+             ========================================== -->
+          <section id="page-dashboard" class="page-section active">
+
+            <!-- Stats Row -->
+            <div class="stats-grid">
+              <div class="stat-card purple">
+                <div class="stat-icon"><i class="fas fa-peso-sign"></i></div>
+                <div class="stat-value" id="stat-revenue">₱0.00</div>
+                <div class="stat-label">Total Revenue</div>
+              </div>
+              <div class="stat-card green">
+                <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                <div class="stat-value" id="stat-sales">0</div>
+                <div class="stat-label">Total Sales</div>
+              </div>
+              <div class="stat-card blue">
+                <div class="stat-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                <div class="stat-value" id="stat-profit">₱0.00</div>
+                <div class="stat-label">Total Profit</div>
+              </div>
+              <div class="stat-card orange">
+                <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="stat-value" id="stat-lowstock">0</div>
+                <div class="stat-label">Low Stock Items</div>
+              </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+              <!-- Recent Sales -->
+              <div class="glass-card">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-heading);margin-bottom:16px;">
+                  <i class="fas fa-clock-rotate-left" style="color:var(--accent-primary);margin-right:8px;"></i>Recent
+                  Sales
+                </h3>
+                <div id="recent-sales-list">
+                  <div class="cart-empty">
+                    <i class="fas fa-receipt"></i>
+                    <p>Loading...</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Actions -->
+              <div class="glass-card">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-heading);margin-bottom:16px;">
+                  <i class="fas fa-bolt" style="color:var(--warning);margin-right:8px;"></i>Quick Actions
+                </h3>
+                <div class="quick-actions">
+                  <button class="quick-action-btn" onclick="Router.navigate('pos')">
+                    <i class="fas fa-cash-register"></i> Open POS
+                  </button>
+                  <button class="quick-action-btn"
+                    onclick="Router.navigate('inventory'); setTimeout(() => Inventory.openAdd(), 200);">
+                    <i class="fas fa-plus-circle"></i> Add Product
+                  </button>
+                  <button class="quick-action-btn" onclick="Router.navigate('inventory')">
+                    <i class="fas fa-boxes-stacked"></i> View Inventory
+                  </button>
+                  <button class="quick-action-btn" onclick="Settings.exportInventory()">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==========================================
+             PAGE: POINT OF SALE
+             ========================================== -->
+          <section id="page-pos" class="page-section">
+            <div class="pos-layout">
+
+              <!-- Products side -->
+              <div class="pos-products">
+                <div class="toolbar">
+                  <div class="search-box" style="flex:1">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="pos-search" placeholder="Search products or scan barcode..."
+                      oninput="POS.searchProducts()">
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="POS.startScanner()" title="Scan Barcode">
+                    <i class="fas fa-barcode"></i> <span class="hide-mobile">Scan</span>
+                  </button>
+                </div>
+
+                <!-- Scanner -->
+                <div id="pos-scanner-container" class="scanner-container" style="display:none;margin-bottom:16px;">
+                  <video id="pos-scanner-video" playsinline></video>
+                  <div class="scanner-overlay">
+                    <div class="scanner-line"></div>
+                  </div>
+                  <button class="btn btn-sm btn-danger" onclick="POS.stopScanner()"
+                    style="position:absolute;top:8px;right:8px;z-index:5;">
+                    <i class="fas fa-times"></i> Close
+                  </button>
+                </div>
+
+                <!-- Product grid -->
+                <div id="pos-product-grid" class="pos-product-grid">
+                  <div class="empty-state" style="grid-column:1/-1">
+                    <i class="fas fa-box-open"></i>
+                    <h3>Loading products...</h3>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cart side -->
+              <div class="pos-cart">
+                <div class="cart-header" style="display:flex; align-items:center;">
+                  <h3><i class="fas fa-shopping-cart" style="margin-right:8px;"></i>Cart</h3>
+                  <div style="flex:1"></div>
+                  <button id="customer-view-btn" class="btn btn-sm btn-ghost" onclick="window.open('customer-view.html', '_blank')" title="Open Customer View" style="margin-right:8px; padding:4px 8px; font-size:12px;">
+                    <i class="fas fa-desktop" style="margin-right:4px;"></i> Customer View
+                  </button>
+                  <span class="cart-count" id="cart-count">0</span>
+                </div>
+
+                <div class="cart-items" id="cart-items">
+                  <div class="cart-empty">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>Cart is empty<br><small>Tap a product or scan a barcode to add</small></p>
+                  </div>
+                </div>
+
+                <div class="cart-footer">
+                  <div class="cart-total">
+                    <span class="total-label">Total</span>
+                    <span class="total-value" id="cart-total-value">₱0.00</span>
+                  </div>
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn btn-ghost btn-sm" onclick="POS.clearCart()" style="flex:1;">
+                      <i class="fas fa-trash"></i> Clear
+                    </button>
+                    <button class="btn btn-success" id="checkout-btn" onclick="POS.checkout()" disabled
+                      style="flex:2;opacity:0.5;">
+                      <i class="fas fa-check-circle"></i> Checkout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==========================================
+             PAGE: INVENTORY
+             ========================================== -->
+          <section id="page-inventory" class="page-section">
+            <div class="toolbar">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="inv-search" placeholder="Search products..." oninput="Inventory.filter()">
+              </div>
+              <select class="filter-select" id="inv-filter-category" onchange="Inventory.filter()">
+                <option value="">All Categories</option>
+                <!-- Dynamic Content Loading -->
+              </select>
+              <button class="btn btn-success" onclick="Inventory.openAdd()">
+                <i class="fas fa-plus"></i> Add Product
+              </button>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU / Barcode</th>
+                    <th>Category</th>
+                    <th>Stock</th>
+                    <th>Cost</th>
+                    <th>Price</th>
+                    <th>Supplier</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="inventory-tbody">
+                  <tr>
+                    <td colspan="7">
+                      <div class="empty-state"><i class="fas fa-box-open"></i>
+                        <h3>Loading...</h3>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ==========================================
+             PAGE: PROFILE (Read-Only Mode + Edit Toggle)
+             ========================================== -->
+          <section id="page-profile" class="page-section">
+            <div class="profile-card glass-card">
+              <div class="profile-header-actions" style="display: flex; justify-content: flex-end; margin-bottom: -20px; position: relative; z-index: 5;">
+                 <button id="profile-edit-btn" class="btn btn-sm btn-ghost" onclick="Profile.toggleEdit(true)">
+                   <i class="fas fa-pen-to-square"></i> Edit Profile
+                 </button>
+              </div>
+
+              <div class="profile-avatar">
+                <div class="avatar-circle" id="profile-avatar-letter">S</div>
+                <h2 style="color:var(--text-heading);font-size:22px;margin-top:4px;">Store Profile</h2>
+                <p id="profile-status-text" style="color:var(--text-muted);font-size:14px;">Review your store credentials</p>
+              </div>
+
+              <form id="profileForm" onsubmit="event.preventDefault(); Profile.save();" class="readonly-mode">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-store-name">Store Name</label>
+                    <input type="text" id="profile-store-name" class="form-input" readonly>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-full-name">Owner Name</label>
+                    <input type="text" id="profile-full-name" class="form-input" readonly>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-email">Email (Login UID)</label>
+                    <input type="email" id="profile-email" class="form-input" readonly>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-phone">Phone Number</label>
+                    <input type="tel" id="profile-phone" class="form-input" readonly>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="profile-address">Store Address</label>
+                  <textarea id="profile-address" class="form-input" style="min-height:60px" readonly></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="profile-hours">Business Hours</label>
+                  <textarea id="profile-hours" class="form-input" readonly style="min-height:80px"></textarea>
+                </div>
+                
+                <div id="profile-edit-actions" style="display: none; gap: 12px; margin-top: 20px;">
+                  <button type="submit" class="btn btn-primary" style="flex: 2;">
+                    <i class="fas fa-check"></i> Save Changes
+                  </button>
+                  <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="Profile.toggleEdit(false)">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- ==========================================
+             PAGE: SETTINGS
+             ========================================== -->
+          <section id="page-settings" class="page-section">
+            <div class="settings-section">
+
+              <!-- Notifications -->
+              <div class="glass-card" style="margin-bottom:20px;">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-heading);margin-bottom:20px;">
+                  <i class="fas fa-bell" style="color:var(--warning);margin-right:8px;"></i>Notifications
+                </h3>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <h4>Low Stock Alerts</h4>
+                    <p>Get notified when stock falls below 5 units</p>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-low-stock" checked onchange="Settings.saveNotifications()">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <h4>Sales Reports</h4>
+                    <p>Daily/weekly sales summary</p>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-sales-reports" checked onchange="Settings.saveNotifications()">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Categories & Management -->
+              <div class="glass-card" style="margin-bottom:20px;">
+                <h3 style="font-size:17px;font-weight:700;color:var(--text-heading);margin-bottom:20px;">
+                  <i class="fas fa-tags" style="color:var(--accent-primary);margin-right:8px;"></i>Category Management
+                </h3>
+                <div class="setting-row" style="margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+                  <div class="setting-info">
+                    <h4>Use Custom Categories Only</h4>
+                    <p>Disable the default BazaarOS category presets</p>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-custom-categories" onchange="Settings.saveCategoryMode()">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+
+                <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Dynamically Rendered Categories -->
+                </div>
+                
+                <div class="form-row" style="margin-top: 24px; gap: 8px; position: relative;">
+                   <button type="button" id="emoji-picker-btn" class="btn btn-ghost" style="width: 50px; font-size: 20px; padding: 0; min-height: 47px;" onclick="Settings.toggleEmojiPicker()">📦</button>
+                   <input type="text" id="new-category-name" class="form-input" placeholder="Category Name" style="flex: 1;">
+                   <button class="btn btn-primary" onclick="Settings.addCategory()"><i class="fas fa-plus"></i></button>
+                   
+                   <!-- Emoji Picker Popover -->
+                   <div id="emoji-picker-popover" style="display:none; position:absolute; bottom:60px; left:0; z-index:100; box-shadow:var(--shadow-lg); border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color); background:var(--bg-card-solid);">
+                     <emoji-picker style="--num-columns: 6; --category-button-size: 24px; width: 300px; height: 350px;" class="light"></emoji-picker>
+                   </div>
+                </div>
+              </div>
+
+              <!-- Data & Backup -->
+
+              <!-- About -->
+              <div class="glass-card" style="text-align:center;padding:40px;">
+                <h2
+                  style="font-size:24px;font-weight:800;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                  BazaarOS v2.0</h2>
+                <p style="color:var(--text-muted);margin-top:8px;font-size:14px;">Modern POS & Inventory Management
+                  System</p>
+                <p style="color:var(--text-muted);margin-top:16px;font-size:13px;">
+                  No copyright infringement intended for product names used.
+                </p>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- end .page-content -->
+      </div><!-- end .main-area -->
+    </div><!-- end .app-layout -->
+  </div><!-- end #app-shell -->
+
+  <!-- ============================================
+     INVENTORY MODAL (Add / Edit Product)
+     ============================================ -->
+  <div id="inventory-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="inventory-modal-title">Add New Product</h2>
+        <button class="modal-close" onclick="Inventory.closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="inventoryForm" onsubmit="event.preventDefault(); Inventory.save();">
+
+          <!-- Barcode Scanner -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;gap:8px;align-items:end;">
+              <div class="form-group" style="flex:1;margin-bottom:0;">
+                <label for="inv-sku">Barcode / SKU</label>
+                <input type="text" id="inv-sku" class="form-input" placeholder="Scan or enter barcode">
+              </div>
+              <button type="button" class="btn btn-sm btn-primary" onclick="Inventory.startScanner()"
+                style="height:47px;">
+                <i class="fas fa-camera"></i>
+              </button>
+            </div>
+            <div id="inv-barcode-preview" style="font-size:12px;color:var(--success);margin-top:6px;"></div>
+          </div>
+
+          <!-- Scanner Container -->
+          <div id="inv-scanner-container" class="scanner-container" style="display:none;margin-bottom:16px;">
+            <video id="inv-scanner-video" playsinline></video>
+            <div class="scanner-overlay">
+              <div class="scanner-line"></div>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger" onclick="Inventory.stopScanner()"
+              style="position:absolute;top:8px;right:8px;z-index:5;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="inv-name">Product Name *</label>
+            <input type="text" id="inv-name" class="form-input" placeholder="e.g. Coca Cola 1.5L" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inv-category">Category</label>
+              <select id="inv-category" class="form-input">
+                <!-- Dynamic Content Loading -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inv-quantity">Quantity</label>
+              <input type="number" id="inv-quantity" class="form-input" placeholder="0" min="0" value="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inv-cost-price">Cost Price (₱)</label>
+              <input type="number" id="inv-cost-price" class="form-input" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label for="inv-price">Selling Price (₱)</label>
+              <input type="number" id="inv-price" class="form-input" placeholder="0.00" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="inv-supplier">Supplier</label>
+            <input type="text" id="inv-supplier" class="form-input" placeholder="Optional">
+          </div>
+
+          <!-- Product Image Upload -->
+          <div class="form-group" style="margin-top:16px;">
+            <label>Product Display Image</label>
+            <div class="image-upload-wrapper" style="display:flex; gap:16px; align-items:center; background:var(--bg-input); padding:16px; border-radius:var(--radius-md); border:1px dashed var(--border-color);">
+               <div id="inv-image-preview" style="width:80px; height:80px; border-radius:var(--radius-sm); background:var(--bg-card); display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--border-color); flex-shrink:0;">
+                  <i class="fas fa-image" style="color:var(--text-muted); font-size:24px;"></i>
+               </div>
+               <div style="flex:1">
+                  <input type="file" id="inv-image-input" accept="image/*" style="display:none;" onchange="Inventory.handleImageSelect(event)">
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('inv-image-input').click()" style="width:100%">
+                    <i class="fas fa-cloud-arrow-up"></i> Choose Image
+                  </button>
+                  <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Square 1:1 recommended</p>
+               </div>
+               <button type="button" id="remove-image-btn" class="btn btn-icon btn-sm" style="display:none; color:var(--danger)" onclick="Inventory.removeImage()">
+                 <i class="fas fa-trash-can"></i>
+               </button>
+            </div>
+            <input type="hidden" id="inv-image-url">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">
+            <i class="fas fa-save"></i> Save Product
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+     RECEIPT MODAL
+     ============================================ -->
+  <div id="receipt-modal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2><i class="fas fa-receipt" style="margin-right:8px;"></i>Receipt</h2>
+        <button class="modal-close" onclick="POS.closeReceipt()">&times;</button>
+      </div>
+      <div class="modal-body" id="receipt-content">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-full" onclick="POS.closeReceipt()">
+          <i class="fas fa-check"></i> Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+     SCRIPTS (order matters)
+     ============================================ -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/auth.js"></script>
+
+  <style>
+    @media (max-width: 767px) {
+      .hide-mobile {
+        display: none !important;
+      }
+      #customer-view-btn {
+        display: none !important;
+      }
+    }
+  </style>
+
+</body>
+
+</html>

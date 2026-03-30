@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer View - BazaarOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Supabase JS CDN and Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase-config.js"></script>
+
+  <style>
+    /* Customer View Specific Overrides */
+    body {
+      background: var(--bg-primary);
+      overflow: hidden;
+      /* No scrolling for full screen */
+      height: 100vh;
+      display: flex;
+      font-size: 1.2rem;
+    }
+
+    .ad-panel {
+      flex: 1.2;
+      background: radial-gradient(ellipse at center, rgba(102, 126, 234, 0.15) 0%, transparent 70%), var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      text-align: center;
+      border-right: 1px solid var(--border-color);
+      animation: gradientDrift 15s ease infinite alternate;
+    }
+
+    @keyframes gradientDrift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      100% {
+        background-position: 100% 50%;
+      }
+    }
+
+    .ad-panel img {
+      width: 180px;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.4));
+    }
+
+    .ad-panel h1 {
+      font-size: 48px;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+
+    .ad-panel h2 {
+      font-size: 24px;
+      color: var(--text-secondary);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .receipt-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .receipt-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .receipt-header h3 {
+      font-size: 28px;
+      color: var(--text-heading);
+    }
+
+    .receipt-count {
+      background: rgba(102, 126, 234, 0.2);
+      color: var(--accent-primary);
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .receipt-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 32px;
+    }
+
+    .receipt-empty {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .receipt-empty i {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .receipt-empty p {
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .receipt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      animation: slideInItem 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes slideInItem {
+      from {
+        transform: translateX(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .ri-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg-input);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ri-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ri-thumb .fallback-emoji {
+      font-size: 32px;
+    }
+
+    .ri-info {
+      flex: 1;
+    }
+
+    .ri-info h4 {
+      font-size: 22px;
+      color: var(--text-heading);
+      margin-bottom: 4px;
+    }
+
+    .ri-info span {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    .ri-qty {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin: 0 24px;
+      min-width: 40px;
+      text-align: center;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 8px 0;
+    }
+
+    .ri-price {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .receipt-footer {
+      padding: 32px;
+      background: rgba(15, 15, 35, 0.9);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .total-label {
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .total-value {
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--success);
+      text-shadow: 0 0 30px rgba(10, 207, 151, 0.3);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Left Side: Advertising / Brand -->
+  <div class="ad-panel">
+    <img src="assets/logo.png" alt="BazaarOS Logo" onerror="this.style.display='none';">
+    <h1>Welcome!</h1>
+    <h2>Thank you for shopping with us today.<br>Please check your items on the screen.</h2>
+  </div>
+
+  <!-- Right Side: The Receipt / Cart -->
+  <div class="receipt-panel">
+    <div class="receipt-header">
+      <h3><i class="fas fa-shopping-basket" style="margin-right: 12px; color: var(--accent-primary);"></i>Your Order
+      </h3>
+      <span class="receipt-count" id="cv-count">0 items</span>
+    </div>
+
+    <div class="receipt-items" id="cv-items">
+      <!-- Items will be injected here via localStorage listener -->
+      <div class="receipt-empty">
+        <i class="fas fa-barcode"></i>
+        <p>Awaiting next item...</p>
+      </div>
+    </div>
+
+    <div class="receipt-footer">
+      <div class="total-row">
+        <div class="total-label">Total Due</div>
+        <div class="total-value" id="cv-total">₱0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateCustomerView(data) {
+      if (!data) return;
+      
+      const itemsContainer = document.getElementById('cv-items');
+      const totalCol = document.getElementById('cv-total');
+      const countCol = document.getElementById('cv-count');
+
+      const items = data.items || [];
+      const totalAmount = data.total || 0;
+      const totalCount = items.reduce((sum, i) => sum + i.qty, 0);
+
+      countCol.textContent = totalCount + (totalCount === 1 ? ' item' : ' items');
+      totalCol.textContent = '₱' + totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+      if (items.length === 0) {
+        itemsContainer.innerHTML = `
+          <div class="receipt-empty">
+            <i class="fas fa-barcode"></i>
+            <p>Awaiting next item...</p>
+          </div>
+        `;
+        return;
+      }
+
+      // We use a trick to escape html without breaking the flow
+      const escape = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      };
+
+      itemsContainer.innerHTML = items.map(item => `
+        <div class="receipt-item">
+          <div style="display:flex; align-items:center; flex:1;">
+            <div class="ri-thumb">
+              ${item.image_url ? `<img src="${item.image_url}">` : `<span class="fallback-emoji">📦</span>`}
+            </div>
+            <div class="ri-info">
+              <h4>${escape(item.name)}</h4>
+              <span>₱${item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })} each</span>
+            </div>
+          </div>
+          <div class="ri-qty">x${item.qty}</div>
+          <div class="ri-price">₱${(item.price * item.qty).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+        </div>
+      `).join('');
+
+      // Auto scroll to bottom smoothly
+      itemsContainer.scrollTo({
+        top: itemsContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    let lastCartData = null;
+
+    function checkForUpdates() {
+      // 1. Try direct memory access via window.opener (Perfect for local file:// testing)
+      try {
+        if (window.opener && !window.opener.closed && window.opener.POS) {
+          const items = window.opener.POS.cart || [];
+          const totalAmount = window.opener.POS.getTotal ? window.opener.POS.getTotal() : 0;
+          
+          const currentStr = JSON.stringify({ items, totalAmount });
+          if (currentStr !== lastCartData) {
+            lastCartData = currentStr;
+            updateCustomerView({ items: items, total: totalAmount });
+          }
+          return; // If successful, exit here
+        }
+      } catch (e) {
+        // Opener access blocked (Cross-origin on some live hosts), just continue to fallback
+      }
+
+      // 2. Fallback to localStorage (Standard for web servers & GitHub pages)
+      try {
+        const stored = localStorage.getItem('bazaarpos_current_cart');
+        if (stored && stored !== lastCartData) {
+          lastCartData = stored;
+          updateCustomerView(JSON.parse(stored));
+        }
+      } catch (e) {
+        // Silently catch parsing or access errors
+      }
+    }
+
+    // 1. Initial load
+    checkForUpdates();
+
+    // 2. Listen for storage changes from the main POS window (Works on web servers)
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'bazaarpos_current_cart') {
+        checkForUpdates();
+      }
+    });
+
+    // 3. Fallback polling for local file:// execution where storage events are often blocked by browsers
+    setInterval(checkForUpdates, 300);
+
+    // 4. Cloud Synchronizer - Automatically updates from mobile device scanners via Supabase Realtime
+    async function initCloudCart() {
+      if (typeof supabaseClient === 'undefined') return;
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session || !session.user) return;
+        
+        const userId = session.user.id;
+        
+        // Listen for all future updates over the internet
+        supabaseClient
+          .channel('cv_active_carts')
+          .on('postgres_changes', { 
+             event: '*', 
+             schema: 'public', 
+             table: 'active_carts', 
+             filter: `user_id=eq.${userId}` 
+          }, payload => {
+             if (payload.new && payload.new.cart_data) {
+               const newItems = payload.new.cart_data;
+               const totalAmount = newItems.reduce((s, i) => s + (i.price * i.qty), 0);
+               updateCustomerView({ items: newItems, total: totalAmount });
+             }
+          })
+          .subscribe();
+      } catch (e) {
+        console.error('Realtime cloud sync failed to hook.', e);
+      }
+    }
+
+    initCloudCart();
+
+  </script>
+
+</body>
+
+</html>
